@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Асық ату — рекурсия шебері</title>
+<style>
+  :root {
+    --sky-light: #e0f2fe;
+    --sky-mid: #bae6fd;
+    --ice-white: #f8fafc;
+    --deep-blue: #0c2461;
+    --royal-blue: #1e3799;
+    --accent-gold: #f59e0b;
+    --gold-light: #fef3c7;
+    --success-green: #059669;
+    --error-red: #dc2626;
+    --card-bg: rgba(255, 255, 255, 0.94);
+    --shadow-soft: 0 12px 30px rgba(12, 36, 97, 0.14);
+    --shadow-strong: 0 20px 45px rgba(12, 36, 97, 0.22);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(circle at 20% 20%, #ffffff 0%, #e0f2fe 45%, #bae6fd 100%);
+    color: var(--deep-blue);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Ұлттық ою-өрнек фоны (SVG өрнек) */
+  .ornament-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath fill='%230c2461' d='M60 10 C45 10 38 22 45 32 C50 39 56 35 55 28 C54 22 66 22 65 28 C64 35 70 39 75 32 C82 22 75 10 60 10 Z M60 110 C45 110 38 98 45 88 C50 81 56 85 55 92 C54 98 66 98 65 92 C64 85 70 81 75 88 C82 98 75 110 60 110 Z M10 60 C10 45 22 38 32 45 C39 50 35 56 28 55 C22 54 22 66 28 65 C35 64 39 70 32 75 C22 82 10 75 10 60 Z M110 60 C110 45 98 38 88 45 C81 50 85 56 92 55 C98 54 98 66 92 65 C85 64 81 70 88 75 C98 82 110 75 110 60 Z M60 44 L76 60 L60 76 L44 60 Z'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+
+  /* Жоғарғы тақырып және статистика панелі */
+  header {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(90deg, #ffffff 0%, #f0f9ff 50%, #ffffff 100%);
+    border-bottom: 3px solid #7dd3fc;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    box-shadow: 0 4px 16px rgba(12, 36, 97, 0.08);
+  }
+
+  .title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .logo-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0c2461, #1e3799);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(12, 36, 97, 0.25);
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+    font-weight: 900;
+    color: var(--deep-blue);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .subtitle-tag {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid #bae6fd;
+  }
+
+  .hud-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: #ffffff;
+    border: 2px solid #bae6fd;
+    padding: 0.45rem 1rem;
+    border-radius: 16px;
+    font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+    font-weight: 800;
+    color: var(--deep-blue);
+    box-shadow: 0 3px 10px rgba(12, 36, 97, 0.06);
+  }
+
+  .stat-value {
+    color: #0284c7;
+    font-size: 1.25em;
+  }
+
+  .sound-btn {
+    background: #f0f9ff;
+    border: 2px solid #7dd3fc;
+    color: var(--deep-blue);
+    border-radius: 14px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .sound-btn:hover {
+    background: #e0f2fe;
+    transform: translateY(-1px);
+  }
+
+  /* Негізгі 16:9 бейімделген ойын контейнері */
+  main {
+    position: relative;
+    z-index: 5;
+    flex: 1;
+    width: 100%;
+    max-width: 1520px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 1.5rem;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  @media (max-width: 1024px) {
+    main {
+      grid-template-columns: 1fr;
+      padding: 0.85rem;
+    }
+  }
+
+  /* СОЛ ЖАҚ: ҰЛТТЫҚ АСЫҚ АТУ АЛАҢЫ */
+  .arena-panel {
+    background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%);
+    border: 3px solid #7dd3fc;
+    border-radius: 26px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    min-height: 460px;
+  }
+
+  /* Алаңның жоғарғы ұлттық жиегі */
+  .arena-ornament-strip {
+    height: 22px;
+    background-color: #0c2461;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='22' viewBox='0 0 60 22'%3E%3Cpath fill='%2338bdf8' d='M30 2 C22 2 18 8 22 13 C25 16 28 14 27 10 C27 7 33 7 33 10 C32 14 35 16 38 13 C42 8 38 2 30 2 Z M0 11 L10 4 L10 18 Z M60 11 L50 4 L50 18 Z'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    border-bottom: 2px solid #f59e0b;
+  }
+
+  .arena-stage {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 430px;
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(224, 242, 254, 0.7) 55%, rgba(186, 230, 253, 0.9) 100%);
+    overflow: hidden;
+  }
+
+  /* Дәстүрлі асық ату шеңбері (Көн / Шеңбер сызығы) */
+  .asyq-circle-track {
+    position: absolute;
+    top: 23%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 88%;
+    height: 130px;
+    border: 3px dashed rgba(12, 36, 97, 0.25);
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.85) 0%, rgba(186,230,253,0.25) 100%);
+    box-shadow: inset 0 4px 16px rgba(12, 36, 97, 0.08);
+  }
+
+  .kone-line {
+    position: absolute;
+    top: 27%;
+    left: 8%;
+    right: 8%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #0284c7, #0c2461, #0284c7, transparent);
+    border-radius: 4px;
+    opacity: 0.45;
+  }
+
+  .throw-line {
+    position: absolute;
+    bottom: 19%;
+    left: 12%;
+    right: 12%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(12, 36, 97, 0.35), transparent);
+  }
+
+  .arena-label-top {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1.5px solid #bae6fd;
+    padding: 0.25rem 1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--deep-blue);
+    letter-spacing: 0.04em;
+    z-index: 3;
+    white-space: nowrap;
+  }
+
+  .arena-label-bottom {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #0369a1;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0.2rem 0.85rem;
+    border-radius: 999px;
+    z-index: 3;
+    white-space: nowrap;
+  }
+
+  /* 6 АСЫҚ КОНТЕЙНЕРІ */
+  .asyqs-row {
+    position: absolute;
+    top: 13%;
+    left: 4%;
+    right: 4%;
+    height: 145px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 5;
+  }
+
+  .asyq-slot {
+    position: relative;
+    width: 14.5%;
+    max-width: 96px;
+    min-width: 58px;
+    height: 125px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+  }
+
+  /* Белсенді нысана асықты ерекшелеу */
+  .asyq-slot.active-target::before {
+    content: "▼ НЫСАНА";
+    position: absolute;
+    top: -22px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1.5px solid #f59e0b;
+    padding: 1px 6px;
+    border-radius: 8px;
+    animation: bounceTarget 1s infinite alternate ease-in-out;
+    white-space: nowrap;
+  }
+
+  .asyq-slot.active-target::after {
+    content: "";
+    position: absolute;
+    bottom: 6px;
+    width: 72%;
+    height: 18px;
+    border-radius: 50%;
+    border: 2.5px solid #f59e0b;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.7);
+    animation: pulseRing 1.2s infinite ease-out;
+    z-index: 1;
+  }
+
+  @keyframes bounceTarget {
+    from { transform: translateY(0); }
+    to { transform: translateY(-5px); }
+  }
+
+  @keyframes pulseRing {
+    0% { transform: scale(0.9); opacity: 0.9; }
+    100% { transform: scale(1.35); opacity: 0; }
+  }
+
+  .asyq-piece {
+    width: 100%;
+    height: 92px;
+    position: relative;
+    z-index: 2;
+    cursor: default;
+    filter: drop-shadow(0 10px 8px rgba(12, 36, 97, 0.28));
+    transform-origin: center center;
+    will-change: transform, opacity;
+  }
+
+  .asyq-number-tag {
+    margin-top: 2px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: var(--deep-blue);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #93c5fd;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  /* Асықтың құлап, айналып ұшу анимациясы */
+  @keyframes asyqKnockoutLeft {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+    20% { transform: translate(-25px, -35px) rotate(-140deg) scale(1.12); opacity: 1; }
+    60% { transform: translate(-110px, -95px) rotate(-420deg) scale(0.95); opacity: 0.9; }
+    100% { transform: translate(-220px, -160px) rotate(-760deg) scale(0.4); opacity: 0; }
+  }
+
+  @keyframes asyqKnockoutRight {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+    20% { transform: translate(25px, -35px) rotate(140deg) scale(1.12); opacity: 1; }
+    60% { transform: translate(110px, -95px) rotate(420deg) scale(0.95); opacity: 0.9; }
+    100% { transform: translate(220px, -160px) rotate(760deg) scale(0.4); opacity: 0; }
+  }
+
+  .asyq-knocked-left {
+    animation: asyqKnockoutLeft 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .asyq-knocked-right {
+    animation: asyqKnockoutRight 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* ҮЛКЕН САҚА (Атушы нысан) */
+  .saqa-wrapper {
+    position: absolute;
+    bottom: 36px;
+    left: 50%;
+    width: 112px;
+    height: 112px;
+    transform: translate(-50%, 0);
+    z-index: 12;
+    pointer-events: none;
+    will-change: transform, left, bottom;
+    filter: drop-shadow(0 14px 14px rgba(12, 36, 97, 0.35));
+  }
+
+  .saqa-idle {
+    animation: saqaHover 2.2s ease-in-out infinite;
+  }
+
+  @keyframes saqaHover {
+    0%, 100% { transform: translate(-50%, 0) rotate(-4deg); }
+    50% { transform: translate(-50%, -7px) rotate(4deg); }
+  }
+
+  /* Соққы жарқылы (Impact burst) */
+  .impact-burst {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    pointer-events: none;
+    z-index: 15;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+
+  .impact-burst.active {
+    animation: burstAnim 0.6s ease-out forwards;
+  }
+
+  @keyframes burstAnim {
+    0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.25) rotate(25deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.6) rotate(45deg); opacity: 0; }
+  }
+
+  /* Қалқымалы +10 ұпай анимациясы */
+  .floating-score {
+    position: absolute;
+    font-size: 2rem;
+    font-weight: 900;
+    color: #f59e0b;
+    text-shadow: 0 3px 0 #78350f, 0 6px 15px rgba(245, 158, 11, 0.6);
+    pointer-events: none;
+    z-index: 20;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+
+  .floating-score.show {
+    animation: floatUpScore 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes floatUpScore {
+    0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); }
+    25% { opacity: 1; transform: translate(-50%, -20px) scale(1.25); }
+    80% { opacity: 1; transform: translate(-50%, -55px) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -80px) scale(0.9); }
+  }
+
+  /* Алаң ішіндегі хабарлама тақтасы */
+  .arena-feedback-banner {
+    position: absolute;
+    top: 54%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    width: 86%;
+    max-width: 440px;
+    padding: 0.9rem 1.25rem;
+    border-radius: 20px;
+    text-align: center;
+    font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+    font-weight: 900;
+    z-index: 18;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 14px 32px rgba(12, 36, 97, 0.25);
+  }
+
+  .arena-feedback-banner.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .arena-feedback-banner.hit {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border: 3px solid #10b981;
+    color: #065f46;
+  }
+
+  .arena-feedback-banner.miss {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border: 3px solid #ef4444;
+    color: #991b1b;
+  }
+
+  /* ОҢ ЖАҚ: ТАПСЫРМА ЖӘНЕ PYTHON КОД ПАНЕЛІ */
+  .quiz-panel {
+    background: var(--card-bg);
+    border: 3px solid #7dd3fc;
+    border-radius: 26px;
+    box-shadow: var(--shadow-soft);
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  .stage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e0f2fe;
+  }
+
+  .stage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #0c2461, #1e3799);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 0.4rem 1rem;
+    border-radius: 14px;
+  }
+
+  .stage-title-text {
+    font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+    font-weight: 900;
+    color: #0284c7;
+  }
+
+  .question-text {
+    font-size: clamp(1.15rem, 1.65vw, 1.45rem);
+    font-weight: 800;
+    line-height: 1.4;
+    color: var(--deep-blue);
+    margin-bottom: 1rem;
+  }
+
+  /* Python код блогы (синтаксистік бояумен) */
+  .code-box {
+    background: #0f172a;
+    color: #f8fafc;
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.15rem;
+    border: 2px solid #38bdf8;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow-x: auto;
+  }
+
+  .code-lang-tag {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .code-box pre {
+    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+    font-size: clamp(0.98rem, 1.35vw, 1.18rem);
+    line-height: 1.55;
+    tab-size: 4;
+  }
+
+  .py-kw { color: #c084fc; font-weight: 700; }
+  .py-fn { color: #38bdf8; font-weight: 700; }
+  .py-num { color: #fbbf24; font-weight: 700; }
+  .py-op { color: #f472b6; }
+  .py-blank {
+    display: inline-block;
+    background: rgba(245, 158, 11, 0.25);
+    border-bottom: 2.5px dashed #fbbf24;
+    color: #fde68a;
+    padding: 0 10px;
+    border-radius: 4px;
+    font-weight: 800;
+  }
+
+  /* Жауап нұсқалары */
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .option-btn {
+    width: 100%;
+    text-align: left;
+    background: #ffffff;
+    border: 2.5px solid #bae6fd;
+    border-radius: 18px;
+    padding: 0.9rem 1.2rem;
+    font-size: clamp(1.02rem, 1.4vw, 1.22rem);
+    font-weight: 800;
+    color: var(--deep-blue);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(12, 36, 97, 0.05);
+  }
+
+  .option-btn:hover:not(:disabled) {
+    background: #f0f9ff;
+    border-color: #0284c7;
+    transform: translateX(5px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.16);
+  }
+
+  .option-btn:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  .option-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.88;
+  }
+
+  .option-letter {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: #e0f2fe;
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .option-btn:hover:not(:disabled) .option-letter {
+    background: #0284c7;
+    color: #ffffff;
+  }
+
+  .option-btn.correct-selected {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #065f46;
+  }
+
+  .option-btn.correct-selected .option-letter {
+    background: #10b981;
+    color: #ffffff;
+  }
+
+  .option-btn.wrong-selected {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #991b1b;
+  }
+
+  .option-btn.wrong-selected .option-letter {
+    background: #ef4444;
+    color: #ffffff;
+  }
+
+  /* Түсіндірме / Ынталандыру жолағы */
+  .explanation-box {
+    min-height: 54px;
+    background: #f0f9ff;
+    border: 2px solid #bae6fd;
+    border-radius: 16px;
+    padding: 0.75rem 1rem;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #0c2461;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .explanation-box.encourage {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
+  }
+
+  .explanation-box.success-note {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #065f46;
+  }
+
+  /* Келесі асық батырмасы */
+  .next-btn {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+    font-size: 1.22rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(217, 119, 6, 0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.2s ease;
+  }
+
+  .next-btn.show {
+    display: flex;
+    animation: popInBtn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .next-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(217, 119, 6, 0.45);
+  }
+
+  @keyframes popInBtn {
+    from { opacity: 0; transform: scale(0.88); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* БАСТАПҚЫ ЭКРАН ЖӘНЕ ҚОРЫТЫНДЫ ЖЕҢІС ЭКРАНЫ (МОДАЛЬДЫ ҚАБАТТАР) */
+  .overlay-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(12, 36, 97, 0.55);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+
+  .overlay-screen.hidden {
+    display: none;
+  }
+
+  .modal-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%);
+    border: 4px solid #38bdf8;
+    border-radius: 32px;
+    max-width: 780px;
+    width: 100%;
+    padding: 2.25rem 2.5rem;
+    text-align: center;
+    box-shadow: var(--shadow-strong);
+    position: relative;
+    overflow: hidden;
+    animation: modalAppear 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes modalAppear {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-ornament-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 16px;
+    background: linear-gradient(90deg, #0c2461, #0284c7, #f59e0b, #0284c7, #0c2461);
+  }
+
+  .modal-title {
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+    font-weight: 900;
+    color: var(--deep-blue);
+    margin-bottom: 0.65rem;
+  }
+
+  .modal-subtitle {
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    font-weight: 700;
+    color: #0369a1;
+    margin-bottom: 1.25rem;
+  }
+
+  .value-banner {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2.5px solid #f59e0b;
+    border-radius: 18px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem auto;
+    font-size: clamp(1.05rem, 1.45vw, 1.25rem);
+    font-weight: 900;
+    color: #78350f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.2);
+  }
+
+  .rules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+    margin: 1.25rem 0 1.65rem;
+    text-align: left;
+  }
+
+  @media (max-width: 680px) {
+    .rules-grid {
+      grid-template-columns: 1fr;
+    }
+    .modal-card {
+      padding: 1.5rem 1.25rem;
+    }
+  }
+
+  .rule-item {
+    background: #ffffff;
+    border: 2px solid #bae6fd;
+    border-radius: 16px;
+    padding: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--deep-blue);
+  }
+
+  .rule-item strong {
+    display: block;
+    color: #0284c7;
+    font-size: 1.05rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .primary-action-btn {
+    background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #0284c7 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 1.1rem 2.6rem;
+    font-size: clamp(1.15rem, 1.6vw, 1.4rem);
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(12, 36, 97, 0.35);
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .primary-action-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 14px 32px rgba(12, 36, 97, 0.45);
+  }
+
+  /* Жеңіс экранының жұлдыздары мен конфетти */
+  .victory-score-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #0c2461, #0284c7);
+    color: #ffffff;
+    font-size: clamp(1.3rem, 2.2vw, 1.85rem);
+    font-weight: 900;
+    padding: 0.75rem 2rem;
+    border-radius: 999px;
+    border: 3px solid #f59e0b;
+    margin: 1rem 0;
+    box-shadow: 0 10px 25px rgba(12, 36, 97, 0.25);
+  }
+
+  .stars-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .confetti-star {
+    position: absolute;
+    font-size: 1.6rem;
+    animation: starFall 3s linear infinite;
+  }
+
+  @keyframes starFall {
+    0% { transform: translateY(-30px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(520px) rotate(360deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ornament-bg"></div>
+
+<!-- ЖОҒАРҒЫ ПАНЕЛЬ -->
+<header>
+  <div class="title-group">
+    <div class="logo-badge" aria-hidden="true">
+      <!-- Мини асық белгішесі -->
+      <svg width="28" height="28" viewBox="0 0 100 120">
+        <path d="M28 18 C16 20 12 36 18 52 C22 62 20 72 15 84 C10 98 20 112 35 108 C45 105 55 105 65 108 C80 112 90 98 85 84 C80 72 78 62 82 52 C88 36 84 20 72 18 C60 16 55 26 50 26 C45 26 40 16 28 18 Z" fill="#fbbf24" stroke="#ffffff" stroke-width="6"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Асық ату — рекурсия шебері</h1>
+      <span class="subtitle-tag">10-сынып Информатика • 10.2.1.2: Рекурсия арқылы факториалды есептеу</span>
+    </div>
+  </div>
+
+  <div class="hud-stats">
+    <div class="stat-pill">
+      <span>🎯 Орындалды:</span>
+      <span class="stat-value" id="completedCount">0 / 6</span>
+    </div>
+    <div class="stat-pill">
+      <span>⭐ Ұпай:</span>
+      <span class="stat-value" id="scoreCount">0</span>
+    </div>
+    <button class="sound-btn" id="soundToggleBtn" title="Дыбысты қосу/өшіру">
+      <span id="soundIcon">🔊</span>
+      <span>Дыбыс</span>
+    </button>
+  </div>
+</header>
+
+<!-- НЕГІЗГІ ОЙЫН КЕҢІСТІГІ -->
+<main>
+  <!-- СОЛ ЖАҚ: ҰЛТТЫҚ АСЫҚ АТУ АЛАҢЫ -->
+  <section class="arena-panel" aria-label="Ұлттық асық ату алаңы">
+    <div class="arena-ornament-strip"></div>
+    <div class="arena-stage" id="arenaStage">
+      <div class="arena-label-top">ҰЛТТЫҚ АСЫҚ АТУ АЛАҢЫ — КӨН СЫЗЫҒЫ</div>
+
+      <!-- Көн шеңбері мен сызығы -->
+      <div class="asyq-circle-track"></div>
+      <div class="kone-line"></div>
+
+      <!-- 6 түрлі түсті 3D асық -->
+      <div class="asyqs-row" id="asyqsRow"></div>
+
+      <!-- Соққы жарқылы -->
+      <div class="impact-burst" id="impactBurst">
+        <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <polygon points="50,2 62,34 96,24 72,50 96,76 62,66 50,98 38,66 4,76 28,50 4,24 38,34" fill="#fbbf24" stroke="#f59e0b" stroke-width="4"/>
+          <circle cx="50" cy="50" r="18" fill="#ffffff"/>
+        </svg>
+      </div>
+
+      <!-- Қалқымалы +10 ұпай -->
+      <div class="floating-score" id="floatingScore">+10 ұпай!</div>
+
+      <!-- Алаң ішіндегі нәтиже хабарламасы -->
+      <div class="arena-feedback-banner" id="arenaFeedbackBanner"></div>
+
+      <!-- Ату сызығы -->
+      <div class="throw-line"></div>
+      <div class="arena-label-bottom">САҚА АТУ ШЕБІ (Дұрыс жауап сақаны нысанаға бағыттайды)</div>
+
+      <!-- Үлкен Сақа -->
+      <div class="saqa-wrapper saqa-idle" id="saqaWrapper">
+        <!-- SVG-мен жасалған көлемді 3D Алтын-Қола Сақа -->
+        <svg viewBox="0 0 140 160" width="100%" height="100%">
+          <defs>
+            <radialGradient id="saqaGoldGrad" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#fef08a"/>
+              <stop offset="35%" stop-color="#f59e0b"/>
+              <stop offset="75%" stop-color="#b45309"/>
+              <stop offset="100%" stop-color="#78350f"/>
+            </radialGradient>
+            <linearGradient id="saqaRimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
+              <stop offset="100%" stop-color="#451a03" stop-opacity="0.5"/>
+            </linearGradient>
+          </defs>
+          <!-- Сақаның негізгі сүйек пішіні (Алшы/Тәйке бедерімен) -->
+          <path d="M36 22 C18 25 12 46 21 68 C27 83 24 96 17 112 C10 130 24 148 45 143 C58 140 82 140 95 143 C116 148 130 130 123 112 C116 96 113 83 119 68 C128 46 122 25 104 22 C88 19 81 33 70 33 C59 33 52 19 36 22 Z"
+                fill="url(#saqaGoldGrad)" stroke="#78350f" stroke-width="4"/>
+          <!-- Сақаның ішкі бедерлі ойығы (Бүк/Шік анатомиялық сызығы) -->
+          <path d="M44 45 C36 60 38 95 46 115 C54 126 86 126 94 115 C102 95 104 60 96 45 C86 55 54 55 44 45 Z"
+                fill="rgba(120, 53, 15, 0.28)" stroke="url(#saqaRimGrad)" stroke-width="2.5"/>
+          <!-- Ортаңғы қорғасын құйылған шеберлік белгісі (Сақа белгісі) -->
+          <ellipse cx="70" cy="82" rx="16" ry="22" fill="#d97706" stroke="#fef3c7" stroke-width="2.5"/>
+          <path d="M70 66 L75 82 L70 98 L65 82 Z" fill="#fef08a"/>
+          <!-- Жарық шағылысы -->
+          <path d="M34 32 C26 40 24 52 28 62" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+          <text x="70" y="155" text-anchor="middle" font-size="13" font-weight="900" fill="#0c2461">САҚА</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ОҢ ЖАҚ: ТАПСЫРМА ЖӘНЕ ЖАУАПТАР ПАНЕЛІ -->
+  <section class="quiz-panel" aria-label="Рекурсия тапсырмасы">
+    <div>
+      <div class="stage-header">
+        <span class="stage-badge" id="stageBadge">1-асық / 6</span>
+        <span class="stage-title-text" id="stageTitle">«Факториалды тап!»</span>
+      </div>
+
+      <div class="question-text" id="questionText">
+        Тапсырма жүктелуде...
+      </div>
+
+      <!-- Python код аймағы (қажет кезеңдерде көрінеді) -->
+      <div class="code-box" id="codeBox" style="display: none;">
+        <span class="code-lang-tag">Python 3</span>
+        <pre id="codeContent"></pre>
+      </div>
+
+      <!-- 3 Жауап нұсқасы -->
+      <div class="options-list" id="optionsList"></div>
+    </div>
+
+    <div>
+      <!-- Оқушыға арналған кеңес / кері байланыс -->
+      <div class="explanation-box" id="explanationBox">
+        <span>💡</span>
+        <span id="explanationText">Дұрыс жауапты таңдап, сақаны нысанаға дәл бағытта!</span>
+      </div>
+
+      <!-- Келесі асық батырмасы -->
+      <button class="next-btn" id="nextBtn">
+        <span id="nextBtnLabel">Келесі асық</span>
+        <span>➔</span>
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- 1. БАСТАПҚЫ ЭКРАН -->
+<div class="overlay-screen" id="startScreen">
+  <div class="modal-card">
+    <div class="modal-ornament-top"></div>
+    <div style="margin-bottom: 0.75rem;">
+      <span class="subtitle-tag" style="font-size: 0.95rem; padding: 0.35rem 1rem;">
+        10-сынып Информатика • Оқу мақсаты: 10.2.1.2
+      </span>
+    </div>
+    <h2 class="modal-title">🎯 Асық ату — рекурсия шебері</h2>
+    <p class="modal-subtitle">
+      Тақырыбы: <strong>Рекурсия арқылы факториалды есептеу</strong>
+    </p>
+
+    <div class="value-banner">
+      <span>⚖️</span>
+      <span>«Біліміңді адал көрсет, жауапкершілікпен шешім қабылда!»</span>
+    </div>
+
+    <div class="rules-grid">
+      <div class="rule-item">
+        <strong>1. 6 Асық — 6 Кезең</strong>
+        Әр асықты құлату үшін рекурсия мен факториалға қатысты тапсырманы шеш.
+      </div>
+      <div class="rule-item">
+        <strong>2. Дәл соққы (+10 ұпай)</strong>
+        Дұрыс жауап таңдалса, сақа атылып, асықты алаңнан ұшырып түсіреді.
+      </div>
+      <div class="rule-item">
+        <strong>3. Қайта мүмкіндік</strong>
+        Қате жауапта сақа мүлт кетеді. Ойланып, қайта жауап беруге болады!
+      </div>
+    </div>
+
+    <button class="primary-action-btn" id="startGameBtn">
+      <span>🎯</span>
+      <span>Ойынды бастау</span>
+    </button>
+  </div>
+</div>
+
+<!-- 2. ҚОРЫТЫНДЫ ЖЕҢІС ЭКРАНЫ -->
+<div class="overlay-screen hidden" id="victoryScreen">
+  <div class="modal-card">
+    <div class="modal-ornament-top"></div>
+    <div class="stars-container" id="starsContainer"></div>
+
+    <div style="font-size: 3.5rem; margin-bottom: 0.35rem;">🏆</div>
+    <h2 class="modal-title" style="color: #0c2461;">ҚҰТТЫҚТАЙМЫЗ!</h2>
+    <h3 class="modal-subtitle" style="font-size: 1.5rem; color: #d97706; font-weight: 900;">
+      СЕН — РЕКУРСИЯ ШЕБЕРІСІҢ!
+    </h3>
+
+    <div class="victory-score-badge" id="finalScoreText">
+      Нәтиже: 60 / 60 ұпай
+    </div>
+
+    <p style="font-size: 1.1rem; font-weight: 700; color: #1e3799; max-width: 560px; margin: 0.5rem auto 1.25rem; line-height: 1.5;">
+      Сен барлық 6 асықты дәл тигізіп, Python тіліндегі рекурсивті функциялар, базалық жағдай және факториалды есептеу біліміңді жоғары деңгейде дәлелдедің!
+    </p>
+
+    <div class="value-banner" style="margin-bottom: 1.5rem;">
+      <span>🌟</span>
+      <span>Адал еңбек пен терең білім әрдайым жеңіске жеткізеді!</span>
+    </div>
+
+    <button class="primary-action-btn" id="restartGameBtn">
+      <span>🔄</span>
+      <span>Қайта ойнау</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  /**
+   * 1. ОЙЫН ТАПСЫРМАЛАРЫ МЕН АСЫҚТАР ДЕРЕКТЕРІ
+   * Барлық 6 кезең талаптарға сай қазақ тілінде, Python синтаксистік бояуымен дайындалған.
+   */
+  const STAGES = [
+    {
+      id: 1,
+      title: "«Факториалды тап!»",
+      asyqColor: { main: "#ef4444", light: "#fca5a5", dark: "#991b1b", name: "Қызыл асық" },
+      question: "5! мәні нешеге тең?",
+      codeHTML: null,
+      options: [
+        { letter: "A", text: "25" },
+        { letter: "B", text: "120" },
+        { letter: "C", text: "60" }
+      ],
+      correctIndex: 1, // B
+      successNote: "Тамаша! 5! = 5 × 4 × 3 × 2 × 1 = 120.",
+      hintNote: "Еске түсір: n! — 1-ден n-ге дейінгі барлық натурал сандардың көбейтіндісі (5×4×3×2×1)."
+    },
+    {
+      id: 2,
+      title: "«Рекурсия құпиясы»",
+      asyqColor: { main: "#10b981", light: "#6ee7b7", dark: "#065f46", name: "Жасыл асық" },
+      question: "Рекурсивті функцияның тоқтауын қамтамасыз ететін шарт қалай аталады?",
+      codeHTML: null,
+      options: [
+        { letter: "A", text: "Цикл шарты" },
+        { letter: "B", text: "Базалық жағдай" },
+        { letter: "C", text: "Енгізу шарты" }
+      ],
+      correctIndex: 1, // B
+      successNote: "Дәл таптың! Базалық жағдай (base case) рекурсияның шексіз қайталануын тоқтатады.",
+      hintNote: "Ойланып көр: рекурсия шексіз жалғаспауы үшін оған тоқтайтын негізгі шарт қажет."
+    },
+    {
+      id: 3,
+      title: "«Кодтың нәтижесін анықта»",
+      asyqColor: { main: "#3b82f6", light: "#93c5fd", dark: "#1e3a8a", name: "Көк асық" },
+      question: "Экранға қандай нәтиже шығады?",
+      codeHTML: `<span class="py-kw">def</span> <span class="py-fn">factorial</span>(n):\n    <span class="py-kw">if</span> n <span class="py-op">==</span> <span class="py-num">0</span>:\n        <span class="py-kw">return</span> <span class="py-num">1</span>\n    <span class="py-kw">return</span> n <span class="py-op">*</span> <span class="py-fn">factorial</span>(n <span class="py-op">-</span> <span class="py-num">1</span>)\n\n<span class="py-fn">print</span>(<span class="py-fn">factorial</span>(<span class="py-num">4</span>))`,
+      options: [
+        { letter: "A", text: "16" },
+        { letter: "B", text: "12" },
+        { letter: "C", text: "24" }
+      ],
+      correctIndex: 2, // C
+      successNote: "Өте жақсы! factorial(4) = 4 × 3 × 2 × 1 × 1 = 24.",
+      hintNote: "Қадамдап есепте: 4 * factorial(3) → 4 * 3 * factorial(2) → 4 * 3 * 2 * 1."
+    },
+    {
+      id: 4,
+      title: "«Жоғалған кодты тап!»",
+      asyqColor: { main: "#8b5cf6", light: "#c4b5fd", dark: "#4c1d95", name: "Күлгін асық" },
+      question: "Бос орынға қандай өрнек жазылады?",
+      codeHTML: `<span class="py-kw">def</span> <span class="py-fn">factorial</span>(n):\n    <span class="py-kw">if</span> n <span class="py-op">==</span> <span class="py-num">0</span>:\n        <span class="py-kw">return</span> <span class="py-num">1</span>\n    <span class="py-kw">return</span> <span class="py-blank">__________</span>`,
+      options: [
+        { letter: "A", text: "n + factorial(n - 1)" },
+        { letter: "B", text: "n * factorial(n - 1)" },
+        { letter: "C", text: "factorial(n + 1)" }
+      ],
+      correctIndex: 1, // B
+      successNote: "Жарайсың! Рекурсивті қадамда n саны (n - 1) факториалына көбейтіледі.",
+      hintNote: "Факториал формуласын еске түсір: n! = n × (n - 1)! және аргумент базалық жағдайға (0-ге) жақындауы тиіс."
+    },
+    {
+      id: 5,
+      title: "«Рекурсивті қадамдар»",
+      asyqColor: { main: "#ec4899", light: "#f9a8d4", dark: "#831843", name: "Қызғылт асық" },
+      question: "factorial(3) функциясы шақырылғанда базалық жағдайға жеткенге дейін функция қандай ретпен орындалады?",
+      codeHTML: null,
+      options: [
+        { letter: "A", text: "factorial(3) → factorial(2) → factorial(1) → factorial(0)" },
+        { letter: "B", text: "factorial(0) → factorial(1) → factorial(2) → factorial(3)" },
+        { letter: "C", text: "factorial(3) → factorial(1) → factorial(0)" }
+      ],
+      correctIndex: 0, // A
+      successNote: "Дәл солай! Әр шақыруда n мәні 1-ге кеміп, 0-ге дейін ретімен түседі.",
+      hintNote: "Функция алдымен 3-тен басталады да, әр қадамда (n - 1) арқылы 1-ге азайып отырады."
+    },
+    {
+      id: 6,
+      title: "«Рекурсия шебері»",
+      asyqColor: { main: "#06b6d4", light: "#67e8f9", dark: "#164e63", name: "Көгілдір асық" },
+      question: "Бұл кодта қандай мәселе бар?",
+      codeHTML: `<span class="py-kw">def</span> <span class="py-fn">factorial</span>(n):\n    <span class="py-kw">if</span> n <span class="py-op">==</span> <span class="py-num">1</span>:\n        <span class="py-kw">return</span> <span class="py-num">1</span>\n    <span class="py-kw">return</span> n <span class="py-op">*</span> <span class="py-fn">factorial</span>(n <span class="py-op">-</span> <span class="py-num">1</span>)\n\n<span class="py-fn">print</span>(<span class="py-fn">factorial</span>(<span class="py-num">0</span>))`,
+      options: [
+        { letter: "A", text: "Код дұрыс жұмыс істеп, 1 нәтижесін береді." },
+        { letter: "B", text: "factorial(0) үшін тоқтау шарты жоқ, сондықтан рекурсивті шақырулар жалғасып, RecursionError пайда болады." },
+        { letter: "C", text: "return қолдануға болмайды." }
+      ],
+      correctIndex: 1, // B
+      successNote: "Керемет талдау! n=0 болғанда n==1 шарты орындалмайды, функция -1, -2... деп шексіз кетіп RecursionError туындайды.",
+      hintNote: "Мұқият қара: функцияға 0 берілді, ал шарт тек n == 1 болғанда ғана тоқтайды. 0 - 1 = -1 болып жалғаса берсе не болады?"
+    }
+  ];
+
+  /**
+   * 2. WEB AUDIO API ДЫБЫС СИНТЕЗАТОРЫ (Интернетсіз жұмыс істейді)
+   */
+  class SoundEffects {
+    constructor() {
+      this.ctx = null;
+      this.enabled = true;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          this.ctx = new AudioCtx();
+        }
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+    }
+
+    // Сақаның ауаны тіліп атылу дыбысы (Whoosh)
+    playThrow() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(520, now + 0.16);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.32);
+
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    }
+
+    // Сақа мен асықтың сүйектей соғылу дыбысы (Knock)
+    playAsyqHit() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      // Сүйек соққысының жоғары жиілікті тықылы
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(980, now);
+      osc.frequency.exponentialRampToValueAtTime(260, now + 0.09);
+
+      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+
+      // Екінші жеңіл домалау тықылы
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(740, now + 0.14);
+      osc2.frequency.exponentialRampToValueAtTime(220, now + 0.22);
+
+      gain2.gain.setValueAtTime(0.22, now + 0.14);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.23);
+
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(now + 0.14);
+      osc2.stop(now + 0.24);
+    }
+
+    // Дұрыс жауапқа жағымды әуезді белгі
+    playSuccessChime() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.08);
+        gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.36);
+      });
+    }
+
+    // Мүлт кету дыбысы
+    playMiss() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(240, now);
+      osc.frequency.linearRampToValueAtTime(150, now + 0.28);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.31);
+    }
+
+    // Жеңіс фанфары
+    playVictory() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const melody = [
+        { f: 523.25, t: 0, d: 0.15 },
+        { f: 659.25, t: 0.14, d: 0.15 },
+        { f: 783.99, t: 0.28, d: 0.15 },
+        { f: 1046.5, t: 0.44, d: 0.45 },
+        { f: 783.99, t: 0.65, d: 0.15 },
+        { f: 1046.5, t: 0.82, d: 0.6 }
+      ];
+      melody.forEach(item => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(item.f, now + item.t);
+
+        gain.gain.setValueAtTime(0.001, now + item.t);
+        gain.gain.linearRampToValueAtTime(0.22, now + item.t + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + item.t + item.d);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + item.t);
+        osc.stop(now + item.t + item.d + 0.02);
+      });
+    }
+  }
+
+  const sfx = new SoundEffects();
+
+  /**
+   * 3. ОЙЫН КҮЙІ (STATE)
+   */
+  let currentStageIndex = 0;
+  let score = 0;
+  let completedStages = 0;
+  let isAnimating = false;
+  let stageSolved = false;
+  let knockedAsyqs = new Set();
+
+  // DOM элементтері
+  const asyqsRow = document.getElementById("asyqsRow");
+  const saqaWrapper = document.getElementById("saqaWrapper");
+  const arenaStage = document.getElementById("arenaStage");
+  const impactBurst = document.getElementById("impactBurst");
+  const floatingScore = document.getElementById("floatingScore");
+  const arenaFeedbackBanner = document.getElementById("arenaFeedbackBanner");
+
+  const completedCountEl = document.getElementById("completedCount");
+  const scoreCountEl = document.getElementById("scoreCount");
+  const stageBadgeEl = document.getElementById("stageBadge");
+  const stageTitleEl = document.getElementById("stageTitle");
+  const questionTextEl = document.getElementById("questionText");
+  const codeBoxEl = document.getElementById("codeBox");
+  const codeContentEl = document.getElementById("codeContent");
+  const optionsListEl = document.getElementById("optionsList");
+  const explanationBoxEl = document.getElementById("explanationBox");
+  const explanationTextEl = document.getElementById("explanationText");
+  const nextBtn = document.getElementById("nextBtn");
+  const nextBtnLabel = document.getElementById("nextBtnLabel");
+
+  const startScreen = document.getElementById("startScreen");
+  const victoryScreen = document.getElementById("victoryScreen");
+  const finalScoreText = document.getElementById("finalScoreText");
+  const starsContainer = document.getElementById("starsContainer");
+
+  /**
+   * 4. ДӘСТҮРЛІ 3D АСЫҚ SVG ГЕНЕРАТОРЫ
+   * Кәдімгі шар емес, нағыз қазақ асығының анатомиялық сүйек пішіні (Алшы/Тәйке/Бүк/Шік бедері)
+   */
+  function createAsyqSVG(index, colorObj) {
+    const gradId = `asyqGrad_${index}`;
+    const innerId = `asyqInner_${index}`;
+    return `
+      <svg viewBox="0 0 110 135" width="100%" height="100%" aria-label="${colorObj.name}">
+        <defs>
+          <radialGradient id="${gradId}" cx="35%" cy="30%" r="72%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+            <stop offset="28%" stop-color="${colorObj.light}"/>
+            <stop offset="68%" stop-color="${colorObj.main}"/>
+            <stop offset="100%" stop-color="${colorObj.dark}"/>
+          </radialGradient>
+          <linearGradient id="${innerId}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#000000" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3"/>
+          </linearGradient>
+        </defs>
+        <!-- Асықтың негізгі сүйек сұлбасы -->
+        <path d="M28 16 C14 19 9 37 16 56 C21 69 19 80 13 94 C7 110 19 125 36 121 C47 118 63 118 74 121 C91 125 103 110 97 94 C91 80 89 69 94 56 C101 37 96 19 82 16 C69 13 63 25 55 25 C47 25 41 13 28 16 Z"
+              fill="url(#${gradId})" stroke="${colorObj.dark}" stroke-width="3.5"/>
+        <!-- Асықтың ішкі ойық бедері -->
+        <path d="M35 37 C28 50 30 80 37 96 C43 105 67 105 73 96 C80 80 82 50 75 37 C67 45 43 45 35 37 Z"
+              fill="url(#${innerId})" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
+        <!-- Ортаңғы ұлттық өрнек таңбасы -->
+        <path d="M55 54 L61 69 L55 84 L49 69 Z" fill="#ffffff" opacity="0.7"/>
+        <!-- Көлемдік жылтыр сызық -->
+        <path d="M26 25 C20 32 19 42 22 50" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity="0.8"/>
+      </svg>
+    `;
+  }
+
+  /**
+   * 5. 6 АСЫҚТЫ АЛАҢҒА ОРНАЛАСТЫРУ
+   */
+  function renderAsyqs() {
+    asyqsRow.innerHTML = "";
+    STAGES.forEach((stage, idx) => {
+      const slot = document.createElement("div");
+      slot.className = "asyq-slot";
+      slot.id = `asyqSlot_${idx}`;
+
+      if (idx === currentStageIndex && !knockedAsyqs.has(idx)) {
+        slot.classList.add("active-target");
+      }
+
+      const piece = document.createElement("div");
+      piece.className = "asyq-piece";
+      piece.id = `asyqPiece_${idx}`;
+      piece.innerHTML = createAsyqSVG(idx, stage.asyqColor);
+
+      if (knockedAsyqs.has(idx)) {
+        piece.style.opacity = "0";
+        piece.style.pointerEvents = "none";
+      }
+
+      const numTag = document.createElement("div");
+      numTag.className = "asyq-number-tag";
+      numTag.textContent = idx + 1;
+      if (knockedAsyqs.has(idx)) {
+        numTag.style.background = "#10b981";
+        numTag.style.color = "#ffffff";
+        numTag.style.borderColor = "#059669";
+        numTag.textContent = "✓";
+      }
+
+      slot.appendChild(piece);
+      slot.appendChild(numTag);
+      asyqsRow.appendChild(slot);
+    });
+  }
+
+  /**
+   * 6. КЕЗЕҢ ТАПСЫРМАСЫН ЖҮКТЕУ
+   */
+  function loadStage(index) {
+    const stage = STAGES[index];
+    stageSolved = false;
+    isAnimating = false;
+
+    // HUD жаңарту
+    stageBadgeEl.textContent = `${stage.id}-асық / ${STAGES.length}`;
+    stageTitleEl.textContent = stage.title;
+    questionTextEl.textContent = stage.question;
+
+    // Python кодын көрсету немесе жасыру
+    if (stage.codeHTML) {
+      codeBoxEl.style.display = "block";
+      codeContentEl.innerHTML = stage.codeHTML;
+    } else {
+      codeBoxEl.style.display = "none";
+      codeContentEl.innerHTML = "";
+    }
+
+    // Жауап батырмаларын жасау (Дұрыс жауап алдын ала белгіленбейді!)
+    optionsListEl.innerHTML = "";
+    stage.options.forEach((opt, optIdx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.type = "button";
+      btn.innerHTML = `
+        <span class="option-letter">${opt.letter}</span>
+        <span>${opt.text}</span>
+      `;
+      btn.addEventListener("click", () => handleAnswerSelect(optIdx, btn));
+      optionsListEl.appendChild(btn);
+    });
+
+    // Кеңес жолағын бастапқы күйге келтіру
+    explanationBoxEl.className = "explanation-box";
+    explanationBoxEl.querySelector("span:first-child").textContent = "💡";
+    explanationTextEl.textContent = "Дұрыс жауапты таңдап, сақаны нысанаға дәл бағытта!";
+
+    // Келесі батырмасын жасыру және алаң хабарламасын тазалау
+    nextBtn.classList.remove("show");
+    hideArenaBanner();
+    resetSaqaPosition();
+    renderAsyqs();
+  }
+
+  function setOptionsDisabled(disabled) {
+    const buttons = optionsListEl.querySelectorAll(".option-btn");
+    buttons.forEach(btn => {
+      btn.disabled = disabled;
+    });
+  }
+
+  function showArenaBanner(text, type) {
+    arenaFeedbackBanner.textContent = text;
+    arenaFeedbackBanner.className = `arena-feedback-banner visible ${type}`;
+  }
+
+  function hideArenaBanner() {
+    arenaFeedbackBanner.className = "arena-feedback-banner";
+  }
+
+  function resetSaqaPosition() {
+    saqaWrapper.style.transition = "none";
+    saqaWrapper.style.transform = "translate(-50%, 0) rotate(0deg) scale(1)";
+    saqaWrapper.style.opacity = "1";
+    saqaWrapper.classList.add("saqa-idle");
+  }
+
+  /**
+   * 7. ЖАУАПТЫ ТЕКСЕРУ ЖӘНЕ САҚАНЫ АТУ МЕХАНИКАСЫ
+   */
+  function handleAnswerSelect(selectedIndex, selectedBtn) {
+    // Анимация кезінде немесе кезең шешілген болса қайта басуға болмайды
+    if (isAnimating || stageSolved) return;
+
+    isAnimating = true;
+    setOptionsDisabled(true);
+    hideArenaBanner();
+
+    const stage = STAGES[currentStageIndex];
+    const isCorrect = selectedIndex === stage.correctIndex;
+
+    // Алдыңғы қате белгілерді тазалау
+    optionsListEl.querySelectorAll(".option-btn").forEach(b => {
+      b.classList.remove("wrong-selected");
+    });
+
+    if (isCorrect) {
+      selectedBtn.classList.add("correct-selected");
+      animateSaqaShot(true, () => {
+        // Соққы сәтінде орындалатын әрекеттер
+        stageSolved = true;
+        score += 10;
+        completedStages += 1;
+        knockedAsyqs.add(currentStageIndex);
+
+        scoreCountEl.textContent = score;
+        completedCountEl.textContent = `${completedStages} / ${STAGES.length}`;
+
+        showArenaBanner("Дәл тигіздің! +10 ұпай 🎯", "hit");
+
+        explanationBoxEl.className = "explanation-box success-note";
+        explanationBoxEl.querySelector("span:first-child").textContent = "✅";
+        explanationTextEl.textContent = stage.successNote;
+
+        if (currentStageIndex === STAGES.length - 1) {
+          nextBtnLabel.textContent = "Нәтижені көру 🏆";
+        } else {
+          nextBtnLabel.textContent = "Келесі асық";
+        }
+        nextBtn.classList.add("show");
+        isAnimating = false;
+      });
+    } else {
+      selectedBtn.classList.add("wrong-selected");
+      animateSaqaShot(false, () => {
+        // Мүлт кеткеннен кейін қайта жауап беруге рұқсат
+        showArenaBanner("Мүлт кеттің! Қайта ойланып көр!", "miss");
+
+        explanationBoxEl.className = "explanation-box encourage";
+        explanationBoxEl.querySelector("span:first-child").textContent = "🧭";
+        explanationTextEl.textContent = `Қателесу — үйренудің бір бөлігі! ${stage.hintNote}`;
+
+        setOptionsDisabled(false);
+        selectedBtn.disabled = true; // Қате таңдалған нұсқаны уақытша құлыптау
+        isAnimating = false;
+      });
+    }
+  }
+
+  /**
+   * 8. САҚАНЫҢ ШЫНАЙЫ ҚОЗҒАЛЫС АНИМАЦИЯСЫ (ДӘЛ ТИЮ ЖӘНЕ МҮЛТ КЕТУ)
+   */
+  function animateSaqaShot(isHit, onComplete) {
+    const arenaRect = arenaStage.getBoundingClientRect();
+    const saqaRect = saqaWrapper.getBoundingClientRect();
+    const targetPiece = document.getElementById(`asyqPiece_${currentStageIndex}`);
+    const targetRect = targetPiece.getBoundingClientRect();
+
+    // Сақа мен нысана асықтың орталық координаттары
+    const startCenterX = saqaRect.left + saqaRect.width / 2;
+    const startCenterY = saqaRect.top + saqaRect.height / 2;
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const targetCenterY = targetRect.top + targetRect.height / 2;
+
+    let deltaX = targetCenterX - startCenterX;
+    let deltaY = targetCenterY - startCenterY;
+
+    // Егер қате жауап болса, сақа нысананың жанынан жанап өтіп кетеді
+    if (!isHit) {
+      const missDirection = currentStageIndex < 3 ? 1 : -1;
+      deltaX += missDirection * Math.max(75, targetRect.width * 1.15);
+      deltaY -= 115; // Асықтың жанынан өтіп кету
+    }
+
+    saqaWrapper.classList.remove("saqa-idle");
+    sfx.playThrow();
+
+    // 1-қадам: Сақаны сәл артқа тартып серпін алу (Anticipation)
+    saqaWrapper.style.transition = "transform 0.16s ease-out";
+    saqaWrapper.style.transform = "translate(-50%, 16px) rotate(-18deg) scale(1.06)";
+
+    setTimeout(() => {
+      // 2-қадам: Сақаның зымырап атылуы
+      const flightDuration = isHit ? 380 : 480;
+      saqaWrapper.style.transition = `transform ${flightDuration}ms cubic-bezier(0.18, 0.89, 0.32, 1.1)`;
+      const spinAngle = isHit ? 540 : 720;
+      saqaWrapper.style.transform = `translate(calc(-50% + ${deltaX}px), ${deltaY}px) rotate(${spinAngle}deg) scale(0.76)`;
+
+      if (isHit) {
+        // Нысанаға жеткен сәт
+        setTimeout(() => {
+          sfx.playAsyqHit();
+          sfx.playSuccessChime();
+
+          // Соққы жарқылы мен +10 ұпай анимациясы
+          const relX = targetCenterX - arenaRect.left;
+          const relY = targetCenterY - arenaRect.top;
+
+          impactBurst.style.left = `${relX}px`;
+          impactBurst.style.top = `${relY}px`;
+          impactBurst.classList.remove("active");
+          void impactBurst.offsetWidth;
+          impactBurst.classList.add("active");
+
+          floatingScore.style.left = `${relX}px`;
+          floatingScore.style.top = `${relY - 10}px`;
+          floatingScore.classList.remove("show");
+          void floatingScore.offsetWidth;
+          floatingScore.classList.add("show");
+
+          // Асықтың айналып құлап, алаңнан шығып кетуі
+          const knockClass = currentStageIndex % 2 === 0 ? "asyq-knocked-left" : "asyq-knocked-right";
+          targetPiece.classList.add(knockClass);
+
+          const slot = document.getElementById(`asyqSlot_${currentStageIndex}`);
+          if (slot) {
+            slot.classList.remove("active-target");
+            const numTag = slot.querySelector(".asyq-number-tag");
+            if (numTag) {
+              numTag.style.background = "#10b981";
+              numTag.style.color = "#ffffff";
+              numTag.textContent = "✓";
+            }
+          }
+
+          // Сақа соққыдан кейін сәл серпіліп, өз орнына оралады
+          saqaWrapper.style.transition = "transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)";
+          saqaWrapper.style.transform = `translate(calc(-50% + ${deltaX * 0.85}px), ${deltaY + 35}px) rotate(620deg) scale(0.8)`;
+
+          setTimeout(() => {
+            saqaWrapper.style.transition = "transform 0.5s ease-in-out";
+            saqaWrapper.style.transform = "translate(-50%, 0) rotate(720deg) scale(1)";
+            setTimeout(() => {
+              resetSaqaPosition();
+              onComplete();
+            }, 500);
+          }, 320);
+
+        }, flightDuration - 30);
+      } else {
+        // Мүлт кету сәті
+        setTimeout(() => {
+          sfx.playMiss();
+          // Асық сәл дірілдеп қалады, бірақ құламайды
+          targetPiece.style.transition = "transform 0.12s ease";
+          targetPiece.style.transform = "rotate(6deg)";
+          setTimeout(() => { targetPiece.style.transform = "rotate(-5deg)"; }, 100);
+          setTimeout(() => { targetPiece.style.transform = "rotate(0deg)"; }, 200);
+        }, flightDuration * 0.65);
+
+        setTimeout(() => {
+          // Сақа бастапқы орнына қайта оралады
+          saqaWrapper.style.transition = "transform 0.48s ease-in-out";
+          saqaWrapper.style.transform = "translate(-50%, 0) rotate(0deg) scale(1)";
+          setTimeout(() => {
+            resetSaqaPosition();
+            onComplete();
+          }, 490);
+        }, flightDuration + 120);
+      }
+    }, 170);
+  }
+
+  /**
+   * 9. КЕЛЕСІ АСЫҚ НЕМЕСЕ ЖЕҢІС ЭКРАНЫНА ӨТУ
+   */
+  nextBtn.addEventListener("click", () => {
+    if (isAnimating) return;
+
+    if (currentStageIndex < STAGES.length - 1) {
+      currentStageIndex += 1;
+      loadStage(currentStageIndex);
+    } else {
+      showVictoryScreen();
+    }
+  });
+
+  function showVictoryScreen() {
+    sfx.playVictory();
+    finalScoreText.textContent = `Нәтиже: ${score} / ${STAGES.length * 10} ұпай`;
+    victoryScreen.classList.remove("hidden");
+    generateVictoryStars();
+  }
+
+  function generateVictoryStars() {
+    starsContainer.innerHTML = "";
+    const symbols = ["⭐", "✨", "🌟", "🎯", "🏆"];
+    for (let i = 0; i < 24; i++) {
+      const star = document.createElement("div");
+      star.className = "confetti-star";
+      star.textContent = symbols[i % symbols.length];
+      star.style.left = `${Math.random() * 96}%`;
+      star.style.animationDelay = `${Math.random() * 2.2}s`;
+      star.style.animationDuration = `${2.2 + Math.random() * 1.8}s`;
+      starsContainer.appendChild(star);
+    }
+  }
+
+  /**
+   * 10. ОЙЫНДЫ БАСТАУ ЖӘНЕ ҚАЙТА ОЙНАУ
+   */
+  function startNewGame() {
+    sfx.init();
+    currentStageIndex = 0;
+    score = 0;
+    completedStages = 0;
+    knockedAsyqs.clear();
+
+    scoreCountEl.textContent = "0";
+    completedCountEl.textContent = `0 / ${STAGES.length}`;
+
+    startScreen.classList.add("hidden");
+    victoryScreen.classList.add("hidden");
+
+    loadStage(0);
+  }
+
+  document.getElementById("startGameBtn").addEventListener("click", startNewGame);
+  document.getElementById("restartGameBtn").addEventListener("click", startNewGame);
+
+  // Дыбысты қосу/өшіру батырмасы
+  const soundToggleBtn = document.getElementById("soundToggleBtn");
+  const soundIcon = document.getElementById("soundIcon");
+  soundToggleBtn.addEventListener("click", () => {
+    sfx.enabled = !sfx.enabled;
+    soundIcon.textContent = sfx.enabled ? "🔊" : "🔇";
+  });
+
+  // Алғашқы бет жүктелгенде фондық алаңды дайындау
+  window.addEventListener("DOMContentLoaded", () => {
+    renderAsyqs();
+  });
+</script>
+</body>
+</html>
